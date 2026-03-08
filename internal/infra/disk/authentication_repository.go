@@ -44,7 +44,6 @@ func (a AuthenticationRepository) Read(ctx context.Context) (*auth.Auth, error) 
 		}
 		return do, nil
 	}
-
 }
 
 func (a AuthenticationRepository) Save(ctx context.Context, auth *auth.Auth) error {
@@ -62,7 +61,7 @@ func (a AuthenticationRepository) Save(ctx context.Context, auth *auth.Auth) err
 		if err != nil {
 			return fmt.Errorf("failed to marshal token: %s", err.Error())
 		}
-		return os.WriteFile(a.filePath, data, 0644)
+		return os.WriteFile(a.filePath, data, 0o644)
 	}
 }
 

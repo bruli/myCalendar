@@ -35,8 +35,8 @@ func (e Event) Location() *string {
 }
 
 func (e Event) Start() string {
-	switch {
-	case e.eventType == WeeklyEventType:
+	switch e.eventType {
+	case WeeklyEventType:
 		return e.start.Weekday().String() + " " + e.start.Format("15:04")
 	default:
 		return e.start.Format("15:04")

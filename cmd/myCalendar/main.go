@@ -71,11 +71,19 @@ func main() {
 		_ = srv.Shutdown(ctx)
 	}()
 
-	go runHTTPServer(ctx, srv, log, err, serverListener)
+	go runHTTPServer(ctx, srv, log, serverListener)
 
 	eventsRepo := googleinfra.NewEventsRepository()
 	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo)
 
+	c := jobs(ctx, log, refreshToken, getEventsSVC)
+
+	c.Start()
+	<-ctx.Done()
+	shutdown(ctx, srv, log)
+}
+
+func jobs(ctx context.Context, log *slog.Logger, refreshToken *auth.RefreshToken, getEventsSVC *calendar.GetEvents) *cron.Cron {
 	loc, _ := time.LoadLocation("Europe/Madrid")
 	c := cron.New(cron.WithLocation(loc))
 	log.InfoContext(ctx, "Running daily job")
@@ -90,13 +98,7 @@ func main() {
 		end := start.AddDate(0, 0, 7)
 		runGetEvents(ctx, refreshToken, log, getEventsSVC, "<b>📅 Events for the week</b>\n────────────────────", calendar.WeeklyEventType, start, end)
 	})
-
-	c.Start()
-
-	select {
-	case <-ctx.Done():
-		shutdown(ctx, srv, log)
-	}
+	return c
 }
 
 func runGetEvents(
@@ -117,10 +119,10 @@ func runGetEvents(
 	}
 }
 
-func runHTTPServer(ctx context.Context, srv *http.Server, log *slog.Logger, err error, serverListener net.Listener) {
+func runHTTPServer(ctx context.Context, srv *http.Server, log *slog.Logger, serverListener net.Listener) {
 	go shutdown(ctx, srv, log)
 
-	if err = srv.Serve(serverListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := srv.Serve(serverListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.ErrorContext(ctx, "Error starting server", "err", err)
 		os.Exit(1)
 	}
@@ -136,7 +138,6 @@ func shutdown(ctx context.Context, srv *http.Server, log *slog.Logger) {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("error shutting down server", "err", err)
 	}
-
 }
 
 func initializeCallback(
@@ -187,7 +188,7 @@ func initializeCallback(
 		}
 		log.InfoContext(ctx, "Tokens created.")
 	case err := <-errCh:
-		log.ErrorContext(ctx, "Error en OAuth: %v", err)
+		log.ErrorContext(ctx, "Error en OAuth", "err", err)
 		os.Exit(1)
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -207,7 +208,6 @@ func buildAuthURL(ctx context.Context, cfg *oauth2.Config, publisher *telegram.M
 	)
 
 	_ = publisher.Publish(ctx, fmt.Sprintf("Click -> %s", authURL))
-
 }
 
 func buildOauthConfig(conf *config.Config) *oauth2.Config {

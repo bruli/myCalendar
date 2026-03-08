@@ -35,7 +35,6 @@ func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle str
 		}
 	}
 	return nil
-
 }
 
 func NewGetEvents(eventsRepo EventsRepository, eventsPub EventsPublisher, authRepo auth.AuthenticationRepository) *GetEvents {

@@ -11,7 +11,6 @@ func (t CreateTokens) Create(ctx context.Context, code string) error {
 	auth, err := t.tokenRepo.Exchange(ctx, code)
 	if err != nil {
 		return err
-
 	}
 	return t.authRepo.Save(ctx, auth)
 }
