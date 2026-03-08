@@ -85,7 +85,11 @@ func main() {
 }
 
 func jobs(ctx context.Context, log *slog.Logger, refreshToken *auth.RefreshToken, getEventsSVC *calendar.GetEvents) *cron.Cron {
-	loc, _ := time.LoadLocation("Europe/Madrid")
+	loc, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		log.ErrorContext(ctx, "Error loading location", "err", err)
+		os.Exit(1)
+	}
 	c := cron.New(cron.WithLocation(loc))
 	log.InfoContext(ctx, "Running daily job")
 	_, _ = c.AddFunc("0 8 * * 2-7", func() {
