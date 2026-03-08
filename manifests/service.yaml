@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+    namespace: mycalendar
+    labels:
+        app: mycalendar
+    name: mycalendar
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: callback
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: mycalendar
+  type: ClusterIP
+

@@ -35,6 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 	serverListener, err := net.Listen("tcp", conf.ServerHost)
+	log.InfoContext(ctx, "Starting server", "host", conf.ServerHost)
 	if err != nil {
 		log.ErrorContext(ctx, "Error starting server", "err", err)
 		os.Exit(1)
@@ -42,6 +43,14 @@ func main() {
 	defer func() {
 		_ = serverListener.Close()
 	}()
+
+	srv := httpinfra.NewServer(conf.ServerHost)
+	defer func() {
+		log.InfoContext(ctx, "Closing server")
+		_ = srv.Shutdown(ctx)
+	}()
+
+	go runHTTPServer(ctx, srv, log, serverListener)
 
 	cfg := buildOauthConfig(conf)
 
@@ -64,14 +73,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
-	srv := httpinfra.NewServer(conf.ServerHost)
-	defer func() {
-		log.InfoContext(ctx, "Closing server")
-		_ = srv.Shutdown(ctx)
-	}()
-
-	go runHTTPServer(ctx, srv, log, serverListener)
 
 	eventsRepo := googleinfra.NewEventsRepository()
 	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo)
@@ -154,6 +155,7 @@ func initializeCallback(
 	errCh := make(chan error, 1)
 
 	listener, err := net.Listen("tcp", callbackHost)
+	log.InfoContext(ctx, "Starting callback", "host", callbackHost)
 	if err != nil {
 		log.ErrorContext(ctx, "failed listening:", "address", callbackHost, "err", err)
 		os.Exit(1)
@@ -214,7 +216,7 @@ func buildOauthConfig(conf *config.Config) *oauth2.Config {
 	cfg := &oauth2.Config{
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
-		RedirectURL:  fmt.Sprintf("http://%s/callback", conf.CallbackHost),
+		RedirectURL:  fmt.Sprintf("http://%s/callback", "mycalendar.bru-li.me"),
 		Scopes: []string{
 			"https://www.googleapis.com/auth/calendar.readonly",
 		},

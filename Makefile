@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 # ⚙️ Configuration
-APP             ?= myCalendar
+APP             ?= mycalendar
 
 DOCKERFILE ?= Dockerfile
 
@@ -67,8 +67,9 @@ docker-login:
 
 .PHONY: docker-push-image
 docker-push-image: docker-login
-	echo "🐳 Building and pushing Docker image $(CURRENT_IMAGE) for (prod)...";
+	echo "🐳 Building and pushing Docker image $(CURRENT_IMAGE) ...";
 	docker buildx build \
+		--platform linux/arm64 \
 		-t $(CURRENT_IMAGE) \
 		-f $(DOCKERFILE) \
 		--push \
