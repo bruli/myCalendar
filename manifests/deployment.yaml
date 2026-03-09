@@ -41,6 +41,8 @@ spec:
                       key: CLIENT_SECRET
             - name: CALLBACK_HOST
               value: :8081
+            - name: CALLBACK_URL
+              value: http://mycalendar.bru-li.me/callback
             - name: TOKENS_FILE
               value: /data/tokens.json
             - name: TELEGRAM_TOKEN

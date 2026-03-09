@@ -220,7 +220,7 @@ func buildOauthConfig(conf *config.Config) *oauth2.Config {
 	cfg := &oauth2.Config{
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
-		RedirectURL:  fmt.Sprintf("http://%s/callback", "mycalendar.bru-li.me"),
+		RedirectURL:  conf.CallbackURL,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/calendar.readonly",
 		},
