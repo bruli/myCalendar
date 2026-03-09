@@ -17,7 +17,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.1.2
+      - image: ghcr.io/bruli/mycalendar:0.1.3
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
@@ -25,6 +25,9 @@ spec:
               containerPort: 8080
             - name: callback
               containerPort: 8081
+        volumeMounts:
+            - name: app-data
+              mountPath: /data
         env:
             - name: CLIENT_ID
               valueFrom:
@@ -39,7 +42,7 @@ spec:
             - name: CALLBACK_HOST
               value: :8081
             - name: TOKENS_FILE
-              value: tokens.json
+              value: /data/tokens.json
             - name: TELEGRAM_TOKEN
               valueFrom:
                   secretKeyRef:
@@ -63,3 +66,7 @@ spec:
         resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits:   { cpu: 200m, memory: 128Mi }
+      volumes:
+          - name: app-data
+            persistentVolumeClaim:
+                claimName: mycalendar-data
