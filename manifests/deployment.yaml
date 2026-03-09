@@ -17,7 +17,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.1.3
+      - image: ghcr.io/bruli/mycalendar:0.1.4
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
