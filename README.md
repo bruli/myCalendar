@@ -1,22 +1,22 @@
 # myCalendar
 
-myCalendar is a small service written in Go that reads events from a Google Calendar and sends daily and weekly summaries through a Telegram bot.
+myCalendar is a small service written in Go that reads events and tasks from a Google Calendar and sends daily and weekly summaries through a Telegram bot.
 
 The goal of the project is to automate calendar notifications by delivering upcoming events directly to a Telegram chat.
 
 ## Features
 
 - Connects to Google Calendar using OAuth2 authentication
-- Reads calendar events
-- Sends **daily summaries** of today's events
-- Sends **weekly summaries** of upcoming events
+- Reads calendar events and tasks
+- Sends **daily summaries** of today's events and tasks
+- Sends **weekly summaries** of upcoming events and tasks
 - Delivers notifications through a **Telegram bot**
 
 ## How it works
 
 1. The service authenticates with **Google Calendar API** using OAuth2.
 2. Access and refresh tokens are stored locally in a file.
-3. The application periodically queries Google Calendar for events.
+3. The application periodically queries Google Calendar for events and tasks.
 4. Events are formatted and sent to a **Telegram chat** via a bot.
 
 ## Google Authentication

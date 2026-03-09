@@ -10,11 +10,11 @@ import (
 
 type GetEvents struct {
 	eventsRepo EventsRepository
-	eventsPub  EventsPublisher
+	eventsPub  Publisher
 	authRepo   auth.AuthenticationRepository
 }
 
-func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle string, eventType EventType) error {
+func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle string, eventType SlotType) error {
 	tokenstr, err := e.authRepo.Read(ctx)
 	if err != nil {
 		return err
@@ -24,6 +24,9 @@ func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle str
 	evnts, err := e.eventsRepo.GetEvents(ctx, from, to, accessToken, tokenType, eventType)
 	if err != nil {
 		return err
+	}
+	if len(evnts) == 0 {
+		return nil
 	}
 	if err := e.eventsPub.Publish(ctx, messageTitle); err != nil {
 		return err
@@ -37,6 +40,6 @@ func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle str
 	return nil
 }
 
-func NewGetEvents(eventsRepo EventsRepository, eventsPub EventsPublisher, authRepo auth.AuthenticationRepository) *GetEvents {
+func NewGetEvents(eventsRepo EventsRepository, eventsPub Publisher, authRepo auth.AuthenticationRepository) *GetEvents {
 	return &GetEvents{eventsRepo: eventsRepo, eventsPub: eventsPub, authRepo: authRepo}
 }

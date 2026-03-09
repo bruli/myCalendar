@@ -75,16 +75,24 @@ func main() {
 	}
 
 	eventsRepo := googleinfra.NewEventsRepository()
+	tasksRepo := googleinfra.NewTasksRepository(log)
 	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo)
+	getTasksSVC := calendar.NewGetTasks(tasksRepo, messagePublisher, authRepo)
 
-	c := jobs(ctx, log, refreshToken, getEventsSVC)
+	c := jobs(ctx, log, refreshToken, getEventsSVC, getTasksSVC)
 
 	c.Start()
 	<-ctx.Done()
 	shutdown(ctx, srv, log)
 }
 
-func jobs(ctx context.Context, log *slog.Logger, refreshToken *auth.RefreshToken, getEventsSVC *calendar.GetEvents) *cron.Cron {
+func jobs(
+	ctx context.Context,
+	log *slog.Logger,
+	refreshToken *auth.RefreshToken,
+	getEventsSVC *calendar.GetEvents,
+	getTasksSVC *calendar.GetTasks,
+) *cron.Cron {
 	loc, err := time.LoadLocation("Europe/Madrid")
 	if err != nil {
 		log.ErrorContext(ctx, "Error loading location", "err", err)
@@ -95,13 +103,15 @@ func jobs(ctx context.Context, log *slog.Logger, refreshToken *auth.RefreshToken
 	_, _ = c.AddFunc("0 8 * * 2-7", func() {
 		start := time.Now().Truncate(24 * time.Hour)
 		end := start.Add(24*time.Hour - time.Second)
-		runGetEvents(ctx, refreshToken, log, getEventsSVC, "<b>📅 Today's events</b>\n────────────────", calendar.DailyEventType, start, end)
+		runGetEvents(ctx, refreshToken, log, getEventsSVC, "📅 Today's events\n────────────────", calendar.DailySlotType, start, end)
+		runGetTasks(ctx, refreshToken, log, getTasksSVC, "✅ Today's tasks\n────────────────", calendar.DailySlotType, start, end)
 	})
 	log.InfoContext(ctx, "Running weekly job")
 	_, _ = c.AddFunc("0 8 * * 1", func() {
 		start := time.Now().Truncate(24 * time.Hour)
 		end := start.AddDate(0, 0, 7)
-		runGetEvents(ctx, refreshToken, log, getEventsSVC, "<b>📅 Events for the week</b>\n────────────────────", calendar.WeeklyEventType, start, end)
+		runGetEvents(ctx, refreshToken, log, getEventsSVC, "📅 Events for the week\n────────────────────", calendar.WeeklySlotType, start, end)
+		runGetTasks(ctx, refreshToken, log, getTasksSVC, "✅ Tasks for the week\n────────────────────", calendar.WeeklySlotType, start, end)
 	})
 	return c
 }
@@ -112,15 +122,32 @@ func runGetEvents(
 	log *slog.Logger,
 	getEventsSVC *calendar.GetEvents,
 	title string,
-	eventType calendar.EventType,
+	slotType calendar.SlotType,
 	start, end time.Time,
 ) {
 	if err := refreshToken.Refresh(ctx); err != nil {
 		log.ErrorContext(ctx, "Error refreshing token on main", "err", err)
 	}
 
-	if err := getEventsSVC.Get(ctx, start, end, title, eventType); err != nil {
+	if err := getEventsSVC.Get(ctx, start, end, title, slotType); err != nil {
 		log.ErrorContext(ctx, "Error getting events", "err", err)
+	}
+}
+func runGetTasks(
+	ctx context.Context,
+	refreshToken *auth.RefreshToken,
+	log *slog.Logger,
+	getTasksSVC *calendar.GetTasks,
+	title string,
+	slotType calendar.SlotType,
+	start, end time.Time,
+) {
+	if err := refreshToken.Refresh(ctx); err != nil {
+		log.ErrorContext(ctx, "Error refreshing token on main", "err", err)
+	}
+
+	if err := getTasksSVC.Get(ctx, start, end, title, slotType); err != nil {
+		log.ErrorContext(ctx, "Error getting tasks", "err", err)
 	}
 }
 
@@ -223,6 +250,7 @@ func buildOauthConfig(conf *config.Config) *oauth2.Config {
 		RedirectURL:  conf.CallbackURL,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/calendar.readonly",
+			"https://www.googleapis.com/auth/tasks.readonly",
 		},
 		Endpoint: google.Endpoint,
 	}

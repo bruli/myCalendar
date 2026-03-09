@@ -13,7 +13,7 @@ import (
 
 type EventsRepository struct{}
 
-func (e EventsRepository) GetEvents(ctx context.Context, from, to time.Time, accessToken, tokenType string, eventType calendar.EventType) ([]calendar.Event, error) {
+func (e EventsRepository) GetEvents(ctx context.Context, from, to time.Time, accessToken, tokenType string, eventType calendar.SlotType) ([]calendar.Event, error) {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: accessToken,
 		TokenType:   tokenType,

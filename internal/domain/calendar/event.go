@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	WeeklyEventType EventType = "weekly"
-	DailyEventType  EventType = "daily"
+	WeeklySlotType SlotType = "weekly"
+	DailySlotType  SlotType = "daily"
 )
 
-type EventType string
+type SlotType string
 
 type Event struct {
 	summary     string
@@ -19,7 +19,7 @@ type Event struct {
 	start       time.Time
 	end         time.Time
 	link        string
-	eventType   EventType
+	slotType    SlotType
 }
 
 func (e Event) Summary() string {
@@ -35,8 +35,8 @@ func (e Event) Location() *string {
 }
 
 func (e Event) Start() string {
-	switch e.eventType {
-	case WeeklyEventType:
+	switch e.slotType {
+	case WeeklySlotType:
 		return e.start.Weekday().String() + " " + e.start.Format("15:04")
 	default:
 		return e.start.Format("15:04")
@@ -58,7 +58,7 @@ func NewEvent(
 	start time.Time,
 	end time.Time,
 	link string,
-	eventType EventType,
+	slotType SlotType,
 ) *Event {
 	return &Event{
 		summary:     summary,
@@ -67,6 +67,6 @@ func NewEvent(
 		start:       start,
 		end:         end,
 		link:        link,
-		eventType:   eventType,
+		slotType:    slotType,
 	}
 }
