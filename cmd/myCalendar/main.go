@@ -109,8 +109,10 @@ func jobs(
 	})
 	log.InfoContext(ctx, "Running weekly job")
 	_, _ = c.AddFunc("0 8 * * 1", func() {
-		start := time.Now().Truncate(24 * time.Hour)
-		end := start.AddDate(0, 0, 7)
+		now := time.Now()
+		start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		endDay := start.AddDate(0, 0, 7)
+		end := time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 23, 59, 0, 0, loc)
 		runGetEvents(ctx, refreshToken, log, getEventsSVC, "📅 Events for the week\n────────────────────", calendar.WeeklySlotType, start, end)
 		runGetTasks(ctx, refreshToken, log, getTasksSVC, "✅ Tasks for the week\n────────────────────", calendar.WeeklySlotType, start, end)
 	})

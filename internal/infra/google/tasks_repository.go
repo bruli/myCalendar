@@ -44,7 +44,6 @@ func (t TasksRepository) GetTasks(ctx context.Context, from, to time.Time, acces
 			return nil, fmt.Errorf("failed to get tasks from list %s: %w", list.Id, err)
 		}
 		for _, item := range resp.Items {
-			t.log.InfoContext(ctx, "Got task", "title", item.Title, "due", item.Due, "selfLink", item.SelfLink)
 			var due *time.Time
 			if item.Due != "" {
 				dueParsed, err := time.Parse(time.RFC3339, item.Due)
