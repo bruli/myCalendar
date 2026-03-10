@@ -100,9 +100,10 @@ func jobs(
 	}
 	c := cron.New(cron.WithLocation(loc))
 	log.InfoContext(ctx, "Running daily job")
-	_, _ = c.AddFunc("0 8 * * 2-7", func() {
-		start := time.Now().Truncate(24 * time.Hour)
-		end := start.Add(24*time.Hour - time.Second)
+	_, _ = c.AddFunc("0 8 * * 0,2-6", func() {
+		now := time.Now()
+		start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		end := start.Add(24*time.Hour - time.Minute)
 		runGetEvents(ctx, refreshToken, log, getEventsSVC, "📅 Today's events\n────────────────", calendar.DailySlotType, start, end)
 		runGetTasks(ctx, refreshToken, log, getTasksSVC, "✅ Today's tasks\n────────────────", calendar.DailySlotType, start, end)
 	})
@@ -129,6 +130,8 @@ func runGetEvents(
 		log.ErrorContext(ctx, "Error refreshing token on main", "err", err)
 	}
 
+	log.InfoContext(ctx, "Getting events", "from", start.Format("2006-01-02 15:04"), "end", end.Format("2006-01-02 15:04"))
+
 	if err := getEventsSVC.Get(ctx, start, end, title, slotType); err != nil {
 		log.ErrorContext(ctx, "Error getting events", "err", err)
 	}
@@ -145,6 +148,7 @@ func runGetTasks(
 	if err := refreshToken.Refresh(ctx); err != nil {
 		log.ErrorContext(ctx, "Error refreshing token on main", "err", err)
 	}
+	log.InfoContext(ctx, "Getting tasks", "from", start.Format("2006-01-02 15:04"), "end", end.Format("2006-01-02 15:04"))
 
 	if err := getTasksSVC.Get(ctx, start, end, title, slotType); err != nil {
 		log.ErrorContext(ctx, "Error getting tasks", "err", err)
