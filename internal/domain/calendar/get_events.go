@@ -26,7 +26,7 @@ func (e GetEvents) Get(ctx context.Context, from, to time.Time, messageTitle str
 		return err
 	}
 	if len(evnts) == 0 {
-		return nil
+		messageTitle = "📅 No events found"
 	}
 	if err := e.eventsPub.Publish(ctx, messageTitle); err != nil {
 		return err

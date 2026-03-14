@@ -26,7 +26,7 @@ func (e GetTasks) Get(ctx context.Context, from, to time.Time, messageTitle stri
 		return err
 	}
 	if len(tasks) == 0 {
-		return nil
+		messageTitle = "✅ No tasks found"
 	}
 	if err = e.publisher.Publish(ctx, messageTitle); err != nil {
 		return err
