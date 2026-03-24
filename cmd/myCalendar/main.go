@@ -23,6 +23,8 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+const serviceName = "myCalendar"
+
 func main() {
 	log := buildLog()
 
@@ -265,9 +267,11 @@ func buildOauthConfig(conf *config.Config) *oauth2.Config {
 }
 
 func buildLog() *slog.Logger {
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})
 
-	return slog.New(handler)
+	log := slog.New(handler)
+	log.With("service", serviceName)
+	return log
 }
