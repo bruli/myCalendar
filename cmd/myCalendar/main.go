@@ -138,6 +138,7 @@ func runGetEvents(
 		log.ErrorContext(ctx, "Error getting events", "err", err)
 	}
 }
+
 func runGetTasks(
 	ctx context.Context,
 	refreshToken *auth.RefreshToken,

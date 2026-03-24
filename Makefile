@@ -7,10 +7,10 @@ DOCKERFILE ?= Dockerfile
 
 IMAGE_REG  ?= ghcr.io/bruli
 IMAGE_NAME := $(IMAGE_REG)/$(APP)
-VERSION    ?= 0.4.0
+VERSION    ?= 0.4.1
 CURRENT_IMAGE := $(IMAGE_NAME):$(VERSION)
 
-GOLANGCI_LINT_VERSION ?= v2.10.0
+GOLANGCI_LINT_VERSION ?= v2.11.2
 
 # Default goal
 .DEFAULT_GOAL := help
