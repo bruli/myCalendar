@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # ⚙️ Configuration
 APP             ?= mycalendar
-
+DOCKER_COMPOSE  := COMPOSE_BAKE=true docker compose
 DOCKERFILE ?= Dockerfile
 
 IMAGE_REG  ?= ghcr.io/bruli
@@ -10,11 +10,28 @@ IMAGE_NAME := $(IMAGE_REG)/$(APP)
 VERSION    ?= 0.5.2
 CURRENT_IMAGE := $(IMAGE_NAME):$(VERSION)
 
-GOLANGCI_LINT_VERSION ?= v2.11.2
+GOLANGCI_LINT_VERSION ?= v2.11.4
 
 # Default goal
 .DEFAULT_GOAL := help
 
+.PHONY: docker-up
+docker-up:
+	@set -euo pipefail; \
+	echo "🚀 Starting services with Docker Compose..."; \
+	$(DOCKER_COMPOSE) up -d --build
+
+.PHONY: docker-down
+docker-down:
+	@set -euo pipefail; \
+	echo "🛑 Stopping and removing Docker Compose services..."; \
+	$(DOCKER_COMPOSE) down
+
+.PHONY: docker-ps
+docker-ps:
+	@set -euo pipefail; \
+	echo "📋 Active services:"; \
+	$(DOCKER_COMPOSE) ps
 
 # ────────────────────────────────────────────────────────────────
 # 🧹 Code quality: format, lint, tests

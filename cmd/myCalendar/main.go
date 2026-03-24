@@ -18,7 +18,9 @@ import (
 	"github.com/bruli/myCalendar/internal/infra/disk"
 	googleinfra "github.com/bruli/myCalendar/internal/infra/google"
 	httpinfra "github.com/bruli/myCalendar/internal/infra/http"
+	"github.com/bruli/myCalendar/internal/infra/tracing"
 	"github.com/robfig/cron/v3"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -36,6 +38,21 @@ func main() {
 		log.ErrorContext(ctx, "Error loading config", "err", err)
 		os.Exit(1)
 	}
+
+	tracingProv, err := tracing.InitTracing(ctx, serviceName)
+	if err != nil {
+		log.ErrorContext(ctx, "Error initializing tracing", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err = tracingProv.Shutdown(shutdownCtx); err != nil {
+			log.ErrorContext(ctx, "Error shutting down tracing", "err", err)
+		}
+	}()
+	tracer := otel.Tracer(serviceName)
 	serverListener, err := net.Listen("tcp", conf.ServerHost)
 	log.InfoContext(ctx, "Starting server", "host", conf.ServerHost)
 	if err != nil {
@@ -76,10 +93,10 @@ func main() {
 		}
 	}
 
-	eventsRepo := googleinfra.NewEventsRepository()
-	tasksRepo := googleinfra.NewTasksRepository(log)
-	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo)
-	getTasksSVC := calendar.NewGetTasks(tasksRepo, messagePublisher, authRepo)
+	eventsRepo := googleinfra.NewEventsRepository(tracer)
+	tasksRepo := googleinfra.NewTasksRepository(log, tracer)
+	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo, tracer)
+	getTasksSVC := calendar.NewGetTasks(tasksRepo, messagePublisher, authRepo, tracer)
 
 	c := jobs(ctx, log, refreshToken, getEventsSVC, getTasksSVC)
 
