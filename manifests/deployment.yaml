@@ -11,14 +11,14 @@ spec:
     matchLabels:
       app: mycalendar
   strategy:
-      type: recreate
+      type: Recreate
   template:
     metadata:
       labels:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.5.1
+      - image: ghcr.io/bruli/mycalendar:0.5.2
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
