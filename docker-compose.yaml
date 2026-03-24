@@ -1,22 +1,7 @@
 services:
-  tempo:
-    image: grafana/tempo:latest
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - .docker/tempo.yaml:/etc/tempo.yaml:ro
-      - .docker/tempo-data:/tmp/tempo
+  lgtm:
+    image: grafana/otel-lgtm:latest
     ports:
-      - "3200:3200"   # Tempo query
-    restart: unless-stopped
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    command: [ "--config=/etc/otel-collector-config.yaml" ]
-    volumes:
-      - .docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    depends_on:
-      - tempo
-    restart: unless-stopped
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
