@@ -18,7 +18,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.6.0
+      - image: ghcr.io/bruli/mycalendar:0.6.1
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
@@ -60,6 +60,10 @@ spec:
               value: :8080
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://otel-collector.observability.svc.cluster.local:4318
+            - name: OTEL_TRACES_SAMPLER
+              value: always_on
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
         readinessProbe:
             httpGet: { path: /healthz, port: http }
             initialDelaySeconds: 3
