@@ -18,7 +18,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.6.1
+      - image: ghcr.io/bruli/mycalendar:0.6.2
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
@@ -43,7 +43,7 @@ spec:
             - name: CALLBACK_HOST
               value: :8081
             - name: CALLBACK_URL
-              value: http://mycalendar.bru-li.me/callback
+              value: https://mycalendar.bru-li.me/callback
             - name: TOKENS_FILE
               value: /data/tokens.json
             - name: TELEGRAM_TOKEN
