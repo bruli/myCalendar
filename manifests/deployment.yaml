@@ -18,7 +18,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.6.2
+      - image: ghcr.io/bruli/mycalendar:0.7.0
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
@@ -33,13 +33,13 @@ spec:
             - name: CLIENT_ID
               valueFrom:
                   secretKeyRef:
-                      name: mycalendar-secret
-                      key: CLIENT_ID
+                      name: google-secret
+                      key: client_id
             - name: CLIENT_SECRET
               valueFrom:
                   secretKeyRef:
-                      name: mycalendar-secret
-                      key: CLIENT_SECRET
+                      name: google-secret
+                      key: client_secret
             - name: CALLBACK_HOST
               value: :8081
             - name: CALLBACK_URL
@@ -49,13 +49,13 @@ spec:
             - name: TELEGRAM_TOKEN
               valueFrom:
                   secretKeyRef:
-                      name: mycalendar-secret
-                      key: TELEGRAM_TOKEN
+                      name: telegram-secret
+                      key: token
             - name: TELEGRAM_CHAT_ID
               valueFrom:
                   secretKeyRef:
-                      name: mycalendar-secret
-                      key: TELEGRAM_CHAT_ID
+                      name: telegram-secret
+                      key: chat_id
             - name: SERVER_HOST
               value: :8080
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
