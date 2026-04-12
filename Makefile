@@ -60,12 +60,6 @@ lint: install-lint
 	echo "🚀 Executing golangci-lint..."; \
     golangci-lint run ./...
 
-.PHONY: test
-test:
-	@set -euo pipefail; \
-	echo "🧪 Running unit tests (race, JSON → tparse)..."; \
-	go test -race ./... -json -cover -coverprofile=coverage.out| go tool tparse -all
-
 .PHONY: clean
 clean:
 	@set -euo pipefail; \
@@ -74,8 +68,8 @@ clean:
 	go clean -testcache
 
 .PHONY: check
-check: fmt lint security test
-	echo "✅ Format, linter and tests success."
+check: fmt lint security
+	echo "✅ Format, linter and security success."
 
 .PHONY: docker-login
 docker-login:

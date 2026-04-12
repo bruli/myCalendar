@@ -46,16 +46,16 @@ func (a AuthenticationRepository) Read(ctx context.Context) (*auth.Auth, error) 
 	}
 }
 
-func (a AuthenticationRepository) Save(ctx context.Context, auth *auth.Auth) error {
+func (a AuthenticationRepository) Save(ctx context.Context, aut *auth.Auth) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 		tok := TokenFile{
-			AccessToken:  auth.AccessToken(),
-			TokenType:    auth.TokenType(),
-			RefreshToken: auth.RefreshToken(),
-			Expiry:       auth.Expiry(),
+			AccessToken:  aut.AccessToken(),
+			TokenType:    aut.TokenType(),
+			RefreshToken: aut.RefreshToken(),
+			Expiry:       aut.Expiry(),
 		}
 		data, err := json.MarshalIndent(tok, "", " ")
 		if err != nil {

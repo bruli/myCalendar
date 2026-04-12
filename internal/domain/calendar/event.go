@@ -22,19 +22,19 @@ type Event struct {
 	slotType    SlotType
 }
 
-func (e Event) Summary() string {
+func (e *Event) Summary() string {
 	return fmt.Sprintf("*%s*", e.summary)
 }
 
-func (e Event) Description() *string {
+func (e *Event) Description() *string {
 	return e.description
 }
 
-func (e Event) Location() *string {
+func (e *Event) Location() *string {
 	return e.location
 }
 
-func (e Event) Start() string {
+func (e *Event) Start() string {
 	switch e.slotType {
 	case WeeklySlotType:
 		return e.start.Weekday().String() + " " + e.start.Format("15:04")
@@ -43,11 +43,11 @@ func (e Event) Start() string {
 	}
 }
 
-func (e Event) End() time.Time {
+func (e *Event) End() time.Time {
 	return e.end
 }
 
-func (e Event) Link() string {
+func (e *Event) Link() string {
 	return e.link
 }
 

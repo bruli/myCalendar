@@ -28,6 +28,12 @@ import (
 const serviceName = "myCalendar"
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	log := buildLog()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -36,13 +42,13 @@ func main() {
 	conf, err := config.New()
 	if err != nil {
 		log.ErrorContext(ctx, "Error loading config", "err", err)
-		os.Exit(1)
+		return err
 	}
 
 	tracingProv, err := tracing.InitTracing(ctx, serviceName)
 	if err != nil {
 		log.ErrorContext(ctx, "Error initializing tracing", "err", err)
-		os.Exit(1)
+		return err
 	}
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -57,7 +63,7 @@ func main() {
 	log.InfoContext(ctx, "Starting server", "host", conf.ServerHost)
 	if err != nil {
 		log.ErrorContext(ctx, "Error starting server", "err", err)
-		os.Exit(1)
+		return err
 	}
 	defer func() {
 		_ = serverListener.Close()
@@ -69,7 +75,14 @@ func main() {
 		_ = srv.Shutdown(ctx)
 	}()
 
-	go runHTTPServer(ctx, srv, log, serverListener)
+	errCh := make(chan error, 1)
+	defer close(errCh)
+
+	go func() {
+		if err := runHTTPServer(ctx, srv, log, serverListener); err != nil {
+			errCh <- err
+		}
+	}()
 
 	cfg := buildOauthConfig(conf)
 
@@ -79,17 +92,20 @@ func main() {
 	messagePublisher, err := telegram.NewMessagePublisher(conf.TelegramToken, conf.TelegramChatID)
 	if err != nil {
 		log.ErrorContext(ctx, "Error creating telegram publisher", "err", err)
-		os.Exit(1)
+		return err
 	}
 
 	if err = refreshToken.Refresh(ctx); err != nil {
 		switch {
 		case errors.As(err, &auth.RefreshError{}):
 			log.WarnContext(ctx, "Error authenticating", "err", err)
-			initializeCallback(ctx, log, tokenRepo, authRepo, cfg, messagePublisher, conf.CallbackHost)
+			if err := initializeCallback(ctx, log, tokenRepo, authRepo, cfg, messagePublisher, conf.CallbackHost); err != nil {
+				log.ErrorContext(ctx, "Error initializing callback", "err", err)
+				return err
+			}
 		default:
 			log.ErrorContext(ctx, "Error refreshing token on main", "err", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
@@ -98,11 +114,22 @@ func main() {
 	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo, tracer)
 	getTasksSVC := calendar.NewGetTasks(tasksRepo, messagePublisher, authRepo, tracer)
 
-	c := jobs(ctx, log, refreshToken, getEventsSVC, getTasksSVC)
+	c, err := jobs(ctx, log, refreshToken, getEventsSVC, getTasksSVC)
+	if err != nil {
+		log.ErrorContext(ctx, "Error creating jobs", "err", err)
+		return err
+	}
 
 	c.Start()
-	<-ctx.Done()
-	shutdown(ctx, srv, log)
+
+	select {
+	case err := <-errCh:
+		log.ErrorContext(ctx, "Error running server", "err", err)
+		return err
+	case <-ctx.Done():
+		shutdown(ctx, srv, log)
+		return ctx.Err()
+	}
 }
 
 func jobs(
@@ -111,11 +138,11 @@ func jobs(
 	refreshToken *auth.RefreshToken,
 	getEventsSVC *calendar.GetEvents,
 	getTasksSVC *calendar.GetTasks,
-) *cron.Cron {
+) (*cron.Cron, error) {
 	loc, err := time.LoadLocation("Europe/Madrid")
 	if err != nil {
 		log.ErrorContext(ctx, "Error loading location", "err", err)
-		os.Exit(1)
+		return nil, err
 	}
 	c := cron.New(cron.WithLocation(loc))
 	log.InfoContext(ctx, "Running daily job")
@@ -135,7 +162,7 @@ func jobs(
 		runGetEvents(ctx, refreshToken, log, getEventsSVC, "📅 Events for the week\n────────────────────", calendar.WeeklySlotType, start, end)
 		runGetTasks(ctx, refreshToken, log, getTasksSVC, "✅ Tasks for the week\n────────────────────", calendar.WeeklySlotType, start, end)
 	})
-	return c
+	return c, nil
 }
 
 func runGetEvents(
@@ -177,13 +204,14 @@ func runGetTasks(
 	}
 }
 
-func runHTTPServer(ctx context.Context, srv *http.Server, log *slog.Logger, serverListener net.Listener) {
+func runHTTPServer(ctx context.Context, srv *http.Server, log *slog.Logger, serverListener net.Listener) error {
 	go shutdown(ctx, srv, log)
 
 	if err := srv.Serve(serverListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.ErrorContext(ctx, "Error starting server", "err", err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
 func shutdown(ctx context.Context, srv *http.Server, log *slog.Logger) {
@@ -206,7 +234,7 @@ func initializeCallback(
 	cfg *oauth2.Config,
 	publisher *telegram.MessagePublisher,
 	callbackHost string,
-) {
+) error {
 	log.InfoContext(ctx, "Initializing callback")
 	codeCh := make(chan string, 1)
 	errCh := make(chan error, 1)
@@ -215,7 +243,8 @@ func initializeCallback(
 	log.InfoContext(ctx, "Starting callback", "host", callbackHost)
 	if err != nil {
 		log.ErrorContext(ctx, "failed listening:", "address", callbackHost, "err", err)
-		os.Exit(1)
+		return err
+
 	}
 	defer func() {
 		_ = listener.Close()
@@ -243,12 +272,12 @@ func initializeCallback(
 		log.InfoContext(ctx, "Authorization received.")
 		if err = createTokenSVC.Create(ctx, code); err != nil {
 			log.ErrorContext(ctx, "Error creating tokens", "err", err)
-			os.Exit(1)
+			return err
 		}
 		log.InfoContext(ctx, "Tokens created.")
 	case err := <-errCh:
 		log.ErrorContext(ctx, "Error en OAuth", "err", err)
-		os.Exit(1)
+		return err
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -256,6 +285,7 @@ func initializeCallback(
 			log.Error("error shutting down server", "err", err)
 		}
 	}
+	return err
 }
 
 func buildAuthURL(ctx context.Context, cfg *oauth2.Config, publisher *telegram.MessagePublisher) {
