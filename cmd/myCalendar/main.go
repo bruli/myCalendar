@@ -14,10 +14,10 @@ import (
 	"github.com/bruli/myCalendar/internal/config"
 	"github.com/bruli/myCalendar/internal/domain/auth"
 	"github.com/bruli/myCalendar/internal/domain/calendar"
-	telegram "github.com/bruli/myCalendar/internal/infra/Telegram"
 	"github.com/bruli/myCalendar/internal/infra/disk"
 	googleinfra "github.com/bruli/myCalendar/internal/infra/google"
 	httpinfra "github.com/bruli/myCalendar/internal/infra/http"
+	"github.com/bruli/myCalendar/internal/infra/ntfy"
 	"github.com/bruli/myCalendar/internal/infra/tracing"
 	"github.com/robfig/cron/v3"
 	"go.opentelemetry.io/otel"
@@ -89,9 +89,9 @@ func run() error {
 	authRepo := disk.NewAuthenticationRepository(conf.TokensFile)
 	tokenRepo := googleinfra.NewTokenRepository(cfg)
 	refreshToken := auth.NewRefreshToken(authRepo, tokenRepo)
-	messagePublisher, err := telegram.NewMessagePublisher(conf.TelegramToken, conf.TelegramChatID)
+	ntfyPublisher, err := ntfy.NewPublisher(conf.NtfyUser, conf.NtfyPassword, conf.NtfyURL, conf.NtfyTopic, tracer)
 	if err != nil {
-		log.ErrorContext(ctx, "Error creating telegram publisher", "err", err)
+		log.ErrorContext(ctx, "Error initializing ntfy publisher", "err", err)
 		return err
 	}
 
@@ -99,7 +99,7 @@ func run() error {
 		switch {
 		case errors.As(err, &auth.RefreshError{}):
 			log.WarnContext(ctx, "Error authenticating", "err", err)
-			if err := initializeCallback(ctx, log, tokenRepo, authRepo, cfg, messagePublisher, conf.CallbackHost); err != nil {
+			if err := initializeCallback(ctx, log, tokenRepo, authRepo, cfg, ntfyPublisher, conf.CallbackHost); err != nil {
 				log.ErrorContext(ctx, "Error initializing callback", "err", err)
 				return err
 			}
@@ -111,8 +111,8 @@ func run() error {
 
 	eventsRepo := googleinfra.NewEventsRepository(tracer)
 	tasksRepo := googleinfra.NewTasksRepository(log, tracer)
-	getEventsSVC := calendar.NewGetEvents(eventsRepo, messagePublisher, authRepo, tracer)
-	getTasksSVC := calendar.NewGetTasks(tasksRepo, messagePublisher, authRepo, tracer)
+	getEventsSVC := calendar.NewGetEvents(eventsRepo, ntfyPublisher, authRepo, tracer)
+	getTasksSVC := calendar.NewGetTasks(tasksRepo, ntfyPublisher, authRepo, tracer)
 
 	c, err := jobs(ctx, log, refreshToken, getEventsSVC, getTasksSVC)
 	if err != nil {
@@ -232,7 +232,7 @@ func initializeCallback(
 	tokenRepo *googleinfra.TokenRepository,
 	authRepo *disk.AuthenticationRepository,
 	cfg *oauth2.Config,
-	publisher *telegram.MessagePublisher,
+	publisher *ntfy.Publisher,
 	callbackHost string,
 ) error {
 	log.InfoContext(ctx, "Initializing callback")
@@ -288,7 +288,7 @@ func initializeCallback(
 	return err
 }
 
-func buildAuthURL(ctx context.Context, cfg *oauth2.Config, publisher *telegram.MessagePublisher) {
+func buildAuthURL(ctx context.Context, cfg *oauth2.Config, publisher *ntfy.Publisher) {
 	state := fmt.Sprintf("state-%d", time.Now().UnixNano())
 	authURL := cfg.AuthCodeURL(
 		state,

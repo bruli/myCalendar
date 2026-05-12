@@ -18,7 +18,7 @@ spec:
         app: mycalendar
     spec:
       containers:
-      - image: ghcr.io/bruli/mycalendar:0.7.0
+      - image: ghcr.io/bruli/mycalendar:0.8.0
         name: mycalendar
         imagePullPolicy: IfNotPresent
         ports:
@@ -46,16 +46,6 @@ spec:
               value: https://mycalendar.bru-li.me/callback
             - name: TOKENS_FILE
               value: /data/tokens.json
-            - name: TELEGRAM_TOKEN
-              valueFrom:
-                  secretKeyRef:
-                      name: telegram-secret
-                      key: token
-            - name: TELEGRAM_CHAT_ID
-              valueFrom:
-                  secretKeyRef:
-                      name: telegram-secret
-                      key: chat_id
             - name: SERVER_HOST
               value: :8080
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -64,6 +54,22 @@ spec:
               value: always_on
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: grpc
+            - name: LOG_LEVEL
+              value: error
+            - name: NTFY_URL
+              value: https://ntfy.bru-li.me
+            - name: NTFY_TOPIC
+              value: ws-ml
+            - name: NTFY_USER
+              valueFrom:
+                  secretKeyRef:
+                      name: ntfy-secret
+                      key: user
+            - name: NTFY_PASSWORD
+              valueFrom:
+                  secretKeyRef:
+                      name: ntfy-secret
+                      key: password
         readinessProbe:
             httpGet: { path: /healthz, port: http }
             initialDelaySeconds: 3
