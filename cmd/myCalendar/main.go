@@ -34,16 +34,16 @@ func main() {
 }
 
 func run() error {
-	log := buildLog()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	conf, err := config.New()
 	if err != nil {
-		log.ErrorContext(ctx, "Error loading config", "err", err)
+		fmt.Printf("Error reading config: %s\n", err.Error())
 		return err
 	}
+	log := buildLog(conf.LogLevel)
 
 	tracingProv, err := tracing.InitTracing(ctx, serviceName)
 	if err != nil {
@@ -313,9 +313,17 @@ func buildOauthConfig(conf *config.Config) *oauth2.Config {
 	return cfg
 }
 
-func buildLog() *slog.Logger {
+func buildLog(level string) *slog.Logger {
+	levels := map[string]slog.Level{
+		"info":  slog.LevelInfo,
+		"debug": slog.LevelDebug,
+		"error": slog.LevelError,
+		"warn":  slog.LevelWarn,
+	}
+	l := levels[level]
+
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: l,
 	})
 
 	log := slog.New(handler)
